@@ -48,7 +48,7 @@ public:
   //REQUIRES: list is not empty
   //EFFECTS: Returns the last element in the list by reference
   T & back(){
-    assert(last == nullptr);
+    assert(last != nullptr);
     return last->datum;
   }
 
@@ -93,18 +93,17 @@ public:
   //EFFECTS:  removes the item at the back of the list
   void pop_back() {
     assert(!empty());
-    first = first->prev;
-    delete first->next;
-    first->next = nullptr;
+    last = last->prev;
+    delete last->next;
+    last->next = nullptr;
   }
 
   //MODIFIES: invalidates all iterators to the removed elements
   //EFFECTS:  removes all items from the list
   void clear() {
-    while (first->next != nullptr) {
+    while (!empty()) {
       pop_front();
     }
-    delete first;
     first = nullptr;
     last = nullptr;
   }
@@ -199,15 +198,15 @@ public:
     // Note: comparing both the list and node pointers should be
     // sufficient to meet these requirements.
 
-    Iterator & operator==(const Iterator &other) const {
+    bool operator==(const Iterator &other) const {
       return list_ptr == other.list_ptr && node_ptr == other.node_ptr;
     }
 
-    Iterator & operator!=(const Iterator &other) const {
+    bool operator!=(const Iterator &other) const {
       return !(*this == other);
     }
 
-    Iterator& operator*() const {
+    T& operator*() const {
       assert(list_ptr);
       assert(node_ptr);
       return node_ptr->datum;
@@ -293,8 +292,12 @@ public:
           node_ptr = np;
           return;
         }
+
       }
     }
+    list_ptr=lp;
+    node_ptr = nullptr;
+  
 
   };//List::Iterator
   ////////////////////////////////////////
@@ -306,7 +309,9 @@ public:
 
   // return an Iterator pointing to "past the end"
   Iterator end() const {
-    return Iterator(this, last->next);
+    if (empty()) return Iterator(this, nullptr){
+      return Iterator(this, last->next);
+    }
   }
 
   //REQUIRES: i is a valid, dereferenceable iterator associated with this list
@@ -315,10 +320,10 @@ public:
   //         Returns An iterator pointing to the element that followed the
   //         element erased by the function call
   Iterator erase(Iterator i) {
-    assert(i.list_ptr = this);
+    assert(i.list_ptr == this);
     assert(i.node_ptr);
 
-    Node *to_delete = i->node_ptr;
+    Node *to_delete = i.node_ptr;
     Node *to_return = nullptr;
 
     if (to_delete == first) {
@@ -353,7 +358,7 @@ public:
     p_insert->prev = i.node_ptr->prev;
 
 
-    if (i->node_ptr->prev != nullptr) {
+    if (i.node_ptr->prev != nullptr) {
       i.node_ptr->prev->next = p_insert;
     }
     else {

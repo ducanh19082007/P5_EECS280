@@ -11,16 +11,17 @@
 
 #include <list>
 #include <string>
+#include "List.hpp"
 // Uncomment the following line to use your List implementation
 // #include "List.hpp"
 
 class TextBuffer {
   // Comment out the following two lines and uncomment the two below
   // to use your List implementation
-  using CharList = std::list<char>;
-  using Iterator = std::list<char>::iterator;
-  // using CharList = List<char>;
-  // using Iterator = List<char>::Iterator;
+  //using CharList = std::list<char>;
+  //using Iterator = std::list<char>::iterator;
+  using CharList = List<char>;
+  using Iterator = List<char>::Iterator;
 
 private:
   CharList data;           // linked list that contains the characters
@@ -54,7 +55,7 @@ private:
 public:
   //EFFECTS: Creates an empty text buffer. Its cursor is at the past-the-end
   //         position, with row 1, column 0, and index 0.
-  TextBuffer();
+  TextBuffer():data(),cursor(data.end()),row(0),column(0),index(0){}
 
   //MODIFIES: *this
   //EFFECTS:  Moves the cursor one position forward and returns true,
@@ -62,7 +63,21 @@ public:
   //          in which case this does nothing and returns false.
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  bool forward();
+  bool forward(){
+    if (cursor==data.end()){
+      return false;
+    }
+    if (*cursor=='\n'){
+      row++;
+      column=0;
+    }
+    else{
+      column++;
+    }
+    cursor++;
+    index++;
+    return true;
+  }
 
   //MODIFIES: *this
   //EFFECTS:  Moves the cursor one position backward and returns true,
@@ -73,7 +88,24 @@ public:
   //          beginning of a line to the end of the previous one.
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  bool backward();
+  bool backward(){
+    
+    
+    // if (cursor==data.begin()){
+    //   return false;
+    // }
+    // cursor--;
+    // if (*cursor=='\n'){
+    //   row--;
+    //   column=compute_column();
+    // }
+    // else{
+    //   column--;
+    // }
+    // index--;
+    // return true;
+
+  }
 
   //MODIFIES: *this
   //EFFECTS:  Inserts a character in the buffer before the cursor position.
@@ -82,7 +114,18 @@ public:
   //          The cursor remains in the same place as before the insertion.
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  void insert(char c);
+  void insert(char c){
+    //normal insert using functions for list
+    data.insert(cursor, c);
+    index++;
+    //insert if we insert newline
+    if (c == '\n'){
+      row++;
+      column = 0;
+    } else {
+      column++;
+    }
+  }
 
   //MODIFIES: *this
   //EFFECTS:  Removes the character from the buffer that is at the cursor and
@@ -93,13 +136,30 @@ public:
   //          character was the last one in the buffer.
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  bool remove();
+  bool remove(){
+    if (cursor==data.end()){
+      return false;
+    }
+    char removed = *cursor;
+    cursor = data.erase(cursor);
+    index--;
+    if (removed=='\n'){
+      row--;
+      column=compute_column();
+    }
+    return true;
+  }
 
   //MODIFIES: *this
   //EFFECTS:  Moves the cursor to the start of the current row (column 0).
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  void move_to_row_start();
+  void move_to_row_start(){
+    //keep on going back until column hits 0
+    while(column!=0){
+      backward();
+    }
+  }
 
   //MODIFIES: *this
   //EFFECTS:  Moves the cursor to the end of the current row (the
@@ -107,7 +167,12 @@ public:
   //          position if the row is the last one in the buffer).
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  void move_to_row_end();
+  void move_to_row_end(){
+    //keep on repeating forward until /n or data.end()
+    while(cursor != data.end() && *cursor != '\n'){
+        forward();
+    }
+  }
 
   //REQUIRES: new_column >= 0
   //MODIFIES: *this
@@ -118,7 +183,13 @@ public:
   //          the last one in the buffer).
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  void move_to_column(int new_column);
+  void move_to_column(int new_column){
+    move_to_row_start();
+    //continue moving forward until end, \n or new_column
+    while(column < new_column && cursor != data.end() && *cursor != '\n'){
+        forward();
+    }
+  }
 
   //MODIFIES: *this
   //EFFECTS:  Moves the cursor to the previous row, retaining the
@@ -130,7 +201,17 @@ public:
   //          not (i.e. if the cursor was already in the first row).
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  bool up();
+  bool up(){
+    //does nothing if cursor in first row
+    if (row==1){
+      return false;
+    }
+    //idea: save column number, then go to the previous row, and move to column
+    int column_saved = column;
+    move_to_row_start();
+    backward();
+    move_to_column(column_saved);
+  }
 
   //MODIFIES: *this
   //EFFECTS:  Moves the cursor to the next row, retaining the current
@@ -143,40 +224,91 @@ public:
   //          not (i.e. if the cursor was already in the last row).
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  bool down();
+  bool down(){
+    
+    
+    
+    
+    // int column_saved = column;
+    // move_to_row_end();
+    // //if row is last row, do nothing and return false
+    // if(cursor==data.end()){
+    //   move_to_column(column_saved);
+    //   return false;
+    // }
+    // //go to column if not last row
+    // forward();
+    // move_to_column(column_saved);
+    // return true;
+  }
 
   //EFFECTS:  Returns whether the cursor is at the past-the-end position.
-  bool is_at_end() const;
+  bool is_at_end() const{
+    if (cursor==data.end()){
+      return true;
+    }
+    return false;
+  }
 
   //REQUIRES: the cursor is not at the past-the-end position
   //EFFECTS:  Returns the character at the current cursor
-  char data_at_cursor() const;
+  char data_at_cursor() const{
+    return *cursor;
+  }
 
   //EFFECTS:  Returns the row of the character at the current cursor.
-  int get_row() const;
+  int get_row() const{
+    return row;
+  }
 
   //EFFECTS:  Returns the column of the character at the current cursor.
-  int get_column() const;
+  int get_column() const{
+    return column;
+  }
 
   //EFFECTS:  Returns the index of the character at the current cursor
   //          with respect to the entire contents. If the cursor is at
   //          the past-the-end position, returns size() as the index.
-  int get_index() const;
+  int get_index() const{
+    if(cursor==data.end()){
+      return data.size();
+    }
+    return index;
+  }
 
   //EFFECTS:  Returns the number of characters in the buffer.
-  int size() const;
+  int size() const{
+    
+    
+    
+    // while(cursor!=data.end()){
+    //   forward();
+    // }
+    // return index;
+  }
 
   //EFFECTS:  Returns the contents of the text buffer as a string.
   //HINT: Implement this using the string constructor that takes a
   //      begin and end iterator. You may use this implementation:
   //        return std::string(data.begin(), data.end());
-  std::string stringify() const;
+  std::string stringify() const{
+    return std::string(data.begin(),data.end());
+  }
 
 private:
   //EFFECTS: Computes the column of the cursor within the current row.
   //NOTE: This does not assume that the "column" member variable has
   //      a correct value (i.e. the row/column INVARIANT can be broken).
-  int compute_column() const;
+  int compute_column() const{
+    int count = 0;
+    for(Iterator cursor_now = this->cursor; *cursor_now!='/n';cursor_now--){
+      count++;
+      if(cursor_now==data.begin()){
+        return count;
+      }
+    }
+    return count;
+  }
 };
 
 #endif // TEXTBUFFER_HPP
