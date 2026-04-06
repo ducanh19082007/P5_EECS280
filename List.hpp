@@ -17,45 +17,117 @@ class List {
 public:
 
   //EFFECTS:  returns true if the list is empty
-  bool empty() const;
+  bool empty() const {
+    if (first == nullptr) {
+      assert(last == nullptr);
+      return true;
+    } else {
+      assert(last != nullptr);
+      return false;
+    }
+  }
 
   //EFFECTS: returns the number of elements in this List
   //HINT:    Traversing a list is really slow. Instead, keep track of the size
   //         with a private member variable. That's how std::list does it.
-  int size() const;
+  int size() const {
+    int count = 0;
+    for (Iterator it = begin(); it != end(); ++it) {
+      count += 1;
+    }
+    return count;
+  }
 
   //REQUIRES: list is not empty
   //EFFECTS: Returns the first element in the list by reference
-  T & front();
+  T & front() {
+    assert(first != nullptr);
+    return first->datum;
+  }
 
   //REQUIRES: list is not empty
   //EFFECTS: Returns the last element in the list by reference
-  T & back();
+  T & back(){
+    assert(last == nullptr);
+    return last->datum;
+  }
 
   //EFFECTS:  inserts datum into the front of the list
-  void push_front(const T &datum);
+  void push_front(const T &datum) {
+    Node *p_new = new Node;
+    p_new->datum = datum;
+    p_new->prev = nullptr;
+    p_new->next = first;
+
+    if (first == nullptr) {
+      last = p_new;
+    }
+    first = p_new;
+  }
 
   //EFFECTS:  inserts datum into the back of the list
-  void push_back(const T &datum);
+  void push_back(const T &datum) {
+    Node *p_new = new Node;
+    p_new->datum = datum;
+    p_new->next = nullptr;
+    p_new->prev = last;
+
+    if(last == nullptr) {
+      first = p_new;
+    }
+    last = p_new;
+  }
 
   //REQUIRES: list is not empty
   //MODIFIES: invalidates all iterators to the removed element
   //EFFECTS:  removes the item at the front of the list
-  void pop_front();
+  void pop_front() {
+      assert(!empty());
+      first = first->next; //go back to the first ones
+      delete first->prev;
+      first->prev = nullptr;
+  }
 
   //REQUIRES: list is not empty
   //MODIFIES: invalidates all iterators to the removed element
   //EFFECTS:  removes the item at the back of the list
-  void pop_back();
+  void pop_back() {
+    assert(!empty());
+    first = first->prev;
+    delete first->next;
+    first->next = nullptr;
+  }
 
   //MODIFIES: invalidates all iterators to the removed elements
   //EFFECTS:  removes all items from the list
-  void clear();
+  void clear() {
+    while (first->next != nullptr) {
+      pop_front();
+    }
+    delete first;
+    first = nullptr;
+    last = nullptr;
+  }
 
   // You should add in a default constructor, destructor, copy constructor,
   // and overloaded assignment operator, if appropriate. If these operations
   // will work correctly without defining these, you should omit them. A user
   // of the class must be able to create, copy, assign, and destroy Lists.
+  List() : first(nullptr), last(nullptr) {}; //default constructor
+
+  ~List() { //destructor
+    clear();
+  }
+
+  List(const List &other) : first (nullptr), last(nullptr) { //copy constructor
+    copy_all(other);
+  }
+
+  List & operator=(const List &other) {
+    clear();
+    copy_all(other);
+    return *this;
+  }
 
 private:
   //a private type
@@ -67,7 +139,11 @@ private:
 
   //REQUIRES: list is empty
   //EFFECTS:  copies all nodes from other to this
-  void copy_all(const List<T> &other);
+  void copy_all(const List<T> &other) {
+    for (Iterator it = other.begin(); it != other.end(); ++it) {
+      push_back(*it);
+    }
+  }
 
   Node *first;   // points to first Node in list, or nullptr if list is empty
   Node *last;    // points to last Node in list, or nullptr if list is empty
@@ -80,6 +156,7 @@ public:
 
     // Add a default constructor here. The default constructor must set both
     // pointer members to null pointers.
+    Iterator(List<T> *list = nullptr) : list_ptr(list), node_ptr(nullptr) {};
 
 
 
@@ -87,7 +164,20 @@ public:
     // overloaded assignment operator, if appropriate. If these operations
     // will work correctly without defining these, you should omit them. A user
     // of the class must be able to copy, assign, and destroy Iterators.
+    ~Iterator() { //destructor
+      list_ptr = nullptr;
+      node_ptr = nullptr; 
+    }
 
+    Iterator(const Iterator &other) : list_ptr(other.list_ptr), node_ptr(other.node_ptr) {}; //copy constructor
+
+    Iterator & operator=(const Iterator &other) { //overloaded assignment operator
+      if (this != &other) {
+        list_ptr = other.list_ptr;
+        node_ptr = other.node_ptr;
+      }
+      return *this;
+    }
 
 
     // Your iterator should implement the following public operators:
@@ -108,6 +198,35 @@ public:
     //     violates the REQURES clause.
     // Note: comparing both the list and node pointers should be
     // sufficient to meet these requirements.
+
+    Iterator & operator==(const Iterator &other) const {
+      return list_ptr == other.list_ptr && node_ptr == other.node_ptr;
+    }
+
+    Iterator & operator!=(const Iterator &other) const {
+      return !(*this == other);
+    }
+
+    Iterator& operator*() const {
+      assert(list_ptr);
+      assert(node_ptr);
+      return node_ptr->datum;
+    }
+
+    Iterator& operator++() { // for when i++
+      assert(list_ptr);
+      assert(node_ptr);
+      node_ptr = node_ptr->next;
+      return *this;
+    }
+
+    Iterator operator++(int /*dummy*/) {
+      assert(list_ptr);
+      assert(node_ptr);
+      Iterator copy = *this;
+      node_ptr = node_ptr->next;
+      return copy;
+    }
 
 
 
@@ -163,32 +282,88 @@ public:
 
 
     // add any friend declarations here
+    friend class List;
 
 
     // construct an Iterator at a specific position in the given List
-    Iterator(const List *lp, Node *np);
+    Iterator(const List *lp, Node *np) {
+      for (Node *n = lp->first; n != nullptr; n = n->next) {
+        if (n == np) {
+          list_ptr = lp;
+          node_ptr = np;
+          return;
+        }
+      }
+    }
 
   };//List::Iterator
   ////////////////////////////////////////
 
   // return an Iterator pointing to the first element
-  Iterator begin() const;
+  Iterator begin() const {
+    return Iterator(this, first);
+  }
 
   // return an Iterator pointing to "past the end"
-  Iterator end() const;
+  Iterator end() const {
+    return Iterator(this, last->next);
+  }
 
   //REQUIRES: i is a valid, dereferenceable iterator associated with this list
   //MODIFIES: invalidates all iterators to the removed element
   //EFFECTS: Removes a single element from the list container.
   //         Returns An iterator pointing to the element that followed the
   //         element erased by the function call
-  Iterator erase(Iterator i);
+  Iterator erase(Iterator i) {
+    assert(i.list_ptr = this);
+    assert(i.node_ptr);
+
+    Node *to_delete = i->node_ptr;
+    Node *to_return = nullptr;
+
+    if (to_delete == first) {
+      first = to_delete->next;
+      to_return = first;
+    }
+    else if (to_delete == last) {
+      last = to_delete->prev;
+      to_return = last;
+    }
+    else {
+      to_delete->prev->next = to_delete->next;
+      to_delete->next->prev = to_delete->prev;
+      to_return = to_delete->next;
+    }
+
+    delete to_delete;
+    return to_return;
+  }
 
   //REQUIRES: i is a valid iterator associated with this list
   //EFFECTS: Inserts datum before the element at the specified position.
   //         Returns an iterator to the the newly inserted element.
-  Iterator insert(Iterator i, const T &datum);
+  Iterator insert(Iterator i, const T &datum) {
+    assert(i.list_ptr == this);
+    assert(i.node_ptr);
 
+    Node *p_insert = new Node;
+    p_insert->datum = datum;
+
+    p_insert->next = i.node_ptr;
+    p_insert->prev = i.node_ptr->prev;
+
+
+    if (i->node_ptr->prev != nullptr) {
+      i.node_ptr->prev->next = p_insert;
+    }
+    else {
+      first = p_insert;
+    }
+
+    i.node_ptr->prev = p_insert;
+
+    return Iterator(this, p_insert);
+  }
 };//List
 
 
@@ -199,4 +374,4 @@ public:
 // Iterator.
 
 
-#endif // Do not remove this. Write all your code above this line.
+#endif // Do not remove this. Write all your code above this line;
