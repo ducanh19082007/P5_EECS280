@@ -316,7 +316,7 @@ public:
   //EFFECTS:  Returns the number of characters in the buffer.
   int size() const{
     int char_count = 0;
-    TextBuffer::Iterator proxy_cursor = data.begin();
+    Iterator proxy_cursor = data.begin();
     while(proxy_cursor!=data.end()){
       if (isalpha(*proxy_cursor)){
         char_count++;
