@@ -52,6 +52,19 @@ private:
   // must maintain these invariants (if they are temporarily broken, the
   // function must restore them before it returns).
 
+  int compute_column() const {
+    int count = 0;
+    Iterator it = cursor;
+
+    while (it != data.begin()) {
+      --it;
+      if (*it == '\n') break;
+      ++count;
+    }
+
+    return count;
+  }
+
 public:
   //EFFECTS: Creates an empty text buffer. Its cursor is at the past-the-end
   //         position, with row 1, column 0, and index 0.
@@ -89,22 +102,19 @@ public:
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
   bool backward(){
+    if (cursor == data.begin()) {
+      return false;
+    }
     
-    
-    // if (cursor==data.begin()){
-    //   return false;
-    // }
-    // cursor--;
-    // if (*cursor=='\n'){
-    //   row--;
-    //   column=compute_column();
-    // }
-    // else{
-    //   column--;
-    // }
-    // index--;
-    // return true;
-
+    cursor--;
+    if(column == 0 && row != 0) {
+      row--;
+      column = compute_column();
+    } else {
+      column--;
+    }
+    index--;
+    return true;
   }
 
   //MODIFIES: *this
@@ -201,16 +211,32 @@ public:
   //          not (i.e. if the cursor was already in the first row).
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  bool up(){
-    //does nothing if cursor in first row
-    if (row==1){
+  bool up() {
+    if (row == 1) {
       return false;
     }
-    //idea: save column number, then go to the previous row, and move to column
-    int column_saved = column;
-    move_to_row_start();
-    backward();
-    move_to_column(column_saved);
+
+    int target_col = column;
+
+    move_to_row_start();  // start of current row
+    backward();           // go to end of previous row
+    move_to_row_start();  // now at start of previous row
+
+    int prev_row_len = 0;
+    Iterator temp = cursor;
+
+    while (temp != data.begin() && *temp != '\n') {
+      ++temp;
+      ++prev_row_len;
+    }
+
+    if (target_col > prev_row_len) {
+      move_to_column(prev_row_len);
+    } else {
+      move_to_column(target_col);
+    }
+
+    return true;
   }
 
   //MODIFIES: *this
@@ -224,27 +250,38 @@ public:
   //          not (i.e. if the cursor was already in the last row).
   //NOTE:     Your implementation must update the row, column, and index
   //          if appropriate to maintain all invariants.
-  bool down(){
-    
-    
-    
-    
-    // int column_saved = column;
-    // move_to_row_end();
-    // //if row is last row, do nothing and return false
-    // if(cursor==data.end()){
-    //   move_to_column(column_saved);
-    //   return false;
-    // }
-    // //go to column if not last row
-    // forward();
-    // move_to_column(column_saved);
-    // return true;
+  bool down() {
+    int target_col = column;
+
+    // go to end of current row
+    move_to_row_end();
+
+    if (cursor == data.end()) {
+      return false; // already last row
+    }
+
+    forward(); // move to next row start
+
+    int next_row_len = 0;
+    Iterator it = cursor;
+
+    while (it != data.end() && *it != '\n') {
+      ++it;
+      ++next_row_len;
+    }
+
+    if (target_col > next_row_len) {
+      move_to_column(next_row_len);
+    } else {
+      move_to_column(target_col);
+    }
+
+    return true;
   }
 
   //EFFECTS:  Returns whether the cursor is at the past-the-end position.
   bool is_at_end() const{
-    if (cursor==data.end()){
+    if (cursor==data.end() || index == data.size()){
       return true;
     }
     return false;
@@ -278,13 +315,15 @@ public:
 
   //EFFECTS:  Returns the number of characters in the buffer.
   int size() const{
-    
-    
-    
-    // while(cursor!=data.end()){
-    //   forward();
-    // }
-    // return index;
+    int char_count = 0;
+    TextBuffer::Iterator proxy_cursor = data.begin();
+    while(proxy_cursor!=data.end()){
+      if (isalpha(*proxy_cursor)){
+        char_count++;
+      }
+      ++proxy_cursor;
+    }
+    return char_count;
   }
 
   //EFFECTS:  Returns the contents of the text buffer as a string.
