@@ -18,24 +18,14 @@ public:
 
   //EFFECTS:  returns true if the list is empty
   bool empty() const {
-    if (first == nullptr) {
-      assert(last == nullptr);
-      return true;
-    } else {
-      assert(last != nullptr);
-      return false;
-    }
+    return first == nullptr;
   }
 
   //EFFECTS: returns the number of elements in this List
   //HINT:    Traversing a list is really slow. Instead, keep track of the size
   //         with a private member variable. That's how std::list does it.
   int size() const {
-    int count = 0;
-    for (Iterator it = begin(); it != end(); ++it) {
-      count += 1;
-    }
-    return count;
+    return ls_size;
   }
 
   //REQUIRES: list is not empty
@@ -59,23 +49,36 @@ public:
     p_new->prev = nullptr;
     p_new->next = first;
 
+    if (first){
+      first->prev = p_new;
+    }
+
     if (first == nullptr) {
       last = p_new;
     }
     first = p_new;
+    ls_size++;
   }
 
   //EFFECTS:  inserts datum into the back of the list
   void push_back(const T &datum) {
+    ls_size++;
     Node *p_new = new Node;
     p_new->datum = datum;
     p_new->next = nullptr;
     p_new->prev = last;
 
-    if(last == nullptr) {
-      first = p_new;
+    if (last) {
+      last->next = p_new;
     }
-    last = p_new;
+
+    if (empty()) {
+      first = last = p_new;
+    } else {
+      last->next = p_new;
+      p_new->prev = last;
+      last = p_new;
+    }
   }
 
   //REQUIRES: list is not empty
@@ -83,9 +86,18 @@ public:
   //EFFECTS:  removes the item at the front of the list
   void pop_front() {
       assert(!empty());
+
+      Node* to_delete = first;
       first = first->next; //go back to the first ones
-      delete first->prev;
-      first->prev = nullptr;
+
+      if (first) {
+        first->prev = nullptr; 
+      } else {
+        last = nullptr;
+      }
+
+      delete to_delete;
+      ls_size-=1;
   }
 
   //REQUIRES: list is not empty
@@ -93,9 +105,17 @@ public:
   //EFFECTS:  removes the item at the back of the list
   void pop_back() {
     assert(!empty());
+
+    Node* to_delete = last;
     last = last->prev;
-    delete last->next;
-    last->next = nullptr;
+    
+    if (last != nullptr) {
+      last->next = nullptr;
+    } else {
+      first = nullptr;
+    }
+    delete to_delete;
+    ls_size -= 1;
   }
 
   //MODIFIES: invalidates all iterators to the removed elements
@@ -104,8 +124,6 @@ public:
     while (!empty()) {
       pop_front();
     }
-    first = nullptr;
-    last = nullptr;
   }
 
   // You should add in a default constructor, destructor, copy constructor,
@@ -123,6 +141,9 @@ public:
   }
 
   List & operator=(const List &other) {
+    if (this == &other) {
+      return *this;
+    }
     clear();
     copy_all(other);
     return *this;
@@ -139,13 +160,14 @@ private:
   //REQUIRES: list is empty
   //EFFECTS:  copies all nodes from other to this
   void copy_all(const List<T> &other) {
-    for (Iterator it = other.begin(); it != other.end(); ++it) {
-      push_back(*it);
+    for (Node *np = other.first; np ; np = np->next) {
+      push_back(np->datum);
     }
   }
 
   Node *first;   // points to first Node in list, or nullptr if list is empty
   Node *last;    // points to last Node in list, or nullptr if list is empty
+  int ls_size = 0;      // number of elements in the list
 
 public:
   ////////////////////////////////////////
@@ -285,18 +307,8 @@ public:
 
 
     // construct an Iterator at a specific position in the given List
-    Iterator(const List *lp, Node *np) {
-      for (Node *n = lp->first; n != nullptr; n = n->next) {
-        if (n == np) {
-          list_ptr = lp;
-          node_ptr = np;
-          return;
-        }
+    Iterator(const List *lp, Node *np) : list_ptr(lp), node_ptr(np) {}
 
-      }
-    }
-    list_ptr=lp;
-    node_ptr = nullptr;
   
 
   };//List::Iterator
@@ -309,9 +321,7 @@ public:
 
   // return an Iterator pointing to "past the end"
   Iterator end() const {
-    if (empty()) return Iterator(this, nullptr){
-      return Iterator(this, last->next);
-    }
+    return Iterator(this, nullptr);
   }
 
   //REQUIRES: i is a valid, dereferenceable iterator associated with this list
@@ -328,10 +338,20 @@ public:
 
     if (to_delete == first) {
       first = to_delete->next;
+      if (first) {
+          first->prev = nullptr;
+      } else {
+        last = nullptr;
+      }
       to_return = first;
     }
     else if (to_delete == last) {
       last = to_delete->prev;
+      if (last) {
+        last->next = nullptr;
+      } else {
+        first = nullptr;
+      }
       to_return = last;
     }
     else {
@@ -341,7 +361,7 @@ public:
     }
 
     delete to_delete;
-    return to_return;
+    return Iterator(this, to_return);
   }
 
   //REQUIRES: i is a valid iterator associated with this list
