@@ -62,7 +62,6 @@ public:
 
   //EFFECTS:  inserts datum into the back of the list
   void push_back(const T &datum) {
-    ls_size++;
     Node *p_new = new Node;
     p_new->datum = datum;
     p_new->next = nullptr;
@@ -77,8 +76,9 @@ public:
     } else {
       last->next = p_new;
       p_new->prev = last;
-      last = p_new;
     }
+    ls_size++;
+    last = p_new;
   }
 
   //REQUIRES: list is not empty
@@ -190,8 +190,10 @@ public:
       node_ptr = nullptr; 
     }
 
-    Iterator(const Iterator &other) : list_ptr(other.list_ptr), node_ptr(other.node_ptr) {}; //copy constructor
-
+  // copy constructor
+    Iterator(const Iterator &other)
+        : list_ptr(other.list_ptr), node_ptr(other.node_ptr) {};
+ 
     Iterator & operator=(const Iterator &other) { //overloaded assignment operator
       if (this != &other) {
         list_ptr = other.list_ptr;
@@ -359,7 +361,7 @@ public:
       to_delete->next->prev = to_delete->prev;
       to_return = to_delete->next;
     }
-
+    ls_size--;
     delete to_delete;
     return Iterator(this, to_return);
   }
@@ -367,28 +369,34 @@ public:
   //REQUIRES: i is a valid iterator associated with this list
   //EFFECTS: Inserts datum before the element at the specified position.
   //         Returns an iterator to the the newly inserted element.
-  Iterator insert(Iterator i, const T &datum) {
+Iterator insert(Iterator i, const T &datum) {
     assert(i.list_ptr == this);
-    assert(i.node_ptr);
-
+    
     Node *p_insert = new Node;
     p_insert->datum = datum;
 
+    if (i.node_ptr == nullptr) {
+        // inserting at end
+        p_insert->next = nullptr;
+        p_insert->prev = last;
+        if (last) last->next = p_insert;
+        else first = p_insert;
+        last = p_insert;
+        ls_size++;
+        return Iterator(this, p_insert);
+    }
+
     p_insert->next = i.node_ptr;
     p_insert->prev = i.node_ptr->prev;
-
-
     if (i.node_ptr->prev != nullptr) {
-      i.node_ptr->prev->next = p_insert;
+        i.node_ptr->prev->next = p_insert;
+    } else {
+        first = p_insert;
     }
-    else {
-      first = p_insert;
-    }
-
     i.node_ptr->prev = p_insert;
-
+    ls_size++;
     return Iterator(this, p_insert);
-  }
+}
 };//List
 
 
